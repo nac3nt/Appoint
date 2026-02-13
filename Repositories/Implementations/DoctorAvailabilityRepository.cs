@@ -25,8 +25,8 @@ namespace Appoint.Repositories.Implementations
             return await _dbSet
                 .Where(a => a.AvailableDate == date &&
                             a.StartTime <= startTime &&
-                            a.EndTime >= endTime &&
-                            !a.IsBooked)
+                            a.EndTime >= endTime)
+                // REMOVED: && !a.IsBooked
                 .ToListAsync<DoctorAvailability>();
         }
     }

@@ -67,11 +67,20 @@ namespace Appoint.Controllers
             if (availability == null)
                 return NotFound();
 
+            // Verify ownership
             if (availability.DoctorId != GetCurrentUserId())
                 return Forbid();
 
-            if (availability.IsBooked)
-                return BadRequest(new { message = "Cannot delete booked slot" });
+            // Check if there are any appointments within this availability slot
+            var appointments = await _appointmentRepository.GetByDoctorIdAsync(availability.DoctorId);
+            var hasAppointments = appointments.Any(apt =>
+                apt.AppointmentDate == availability.AvailableDate &&
+                apt.StartTime >= availability.StartTime &&
+                apt.EndTime <= availability.EndTime
+            );
+
+            if (hasAppointments)
+                return BadRequest(new { message = "Cannot delete availability slot with existing appointments" });
 
             var deleted = await _availabilityRepository.DeleteAsync(id);
             return deleted ? Ok() : NotFound();
