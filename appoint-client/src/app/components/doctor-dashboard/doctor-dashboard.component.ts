@@ -143,7 +143,9 @@ export class DoctorDashboardComponent implements OnInit {
         this.loadCalendarData();
       },
       error: (err) => {
-        alert('Failed to add availability: ' + err.message);
+        // This will now show the overlap error message
+        const errorMessage = err.error?.message || 'Failed to add availability';
+        alert(errorMessage);
       }
     });
   }

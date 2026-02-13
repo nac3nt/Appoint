@@ -31,16 +31,32 @@ namespace Appoint.Controllers
         [HttpPost("availability")]
         public async Task<IActionResult> AddAvailability([FromBody] CreateAvailabilityDto dto)
         {
+            var userId = GetCurrentUserId();
+
+            // Check if doctor already has OVERLAPPING availability on this date
+            var existingAvailability = await _availabilityRepository.GetByDoctorIdAsync(userId);
+
+            var hasOverlap = existingAvailability.Any(avail =>
+                avail.AvailableDate == dto.AvailableDate &&
+                // Check for actual time overlap (not just same day)
+                ((dto.StartTime < avail.EndTime && dto.EndTime > avail.StartTime))
+            );
+
+            if (hasOverlap)
+            {
+                return BadRequest(new { message = "This time overlaps with your existing availability. Please choose a different time or delete the overlapping slot first." });
+            }
+
             var availability = new DoctorAvailability
             {
-                DoctorId = GetCurrentUserId(),
+                DoctorId = userId,
                 AvailableDate = dto.AvailableDate,
                 StartTime = dto.StartTime,
                 EndTime = dto.EndTime
             };
 
             var created = await _availabilityRepository.AddAsync(availability);
-            return CreatedAtAction(nameof(GetMyAvailability), created);
+            return Ok(created);
         }
 
         [HttpGet("availability")]

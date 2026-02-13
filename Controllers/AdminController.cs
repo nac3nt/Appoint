@@ -42,35 +42,42 @@ namespace Appoint.Controllers
             var start = TimeSpan.Parse(startTime);
             var end = TimeSpan.Parse(endTime);
 
+            // Get all doctors who have availability on this date
             var availableSlots = await _availabilityRepository.GetAvailableDoctorsAsync(date, start, end);
 
-            var result = new List<object>();
+            var doctorGroups = new Dictionary<int, object>();
 
             foreach (var slot in availableSlots)
             {
+                // Skip if we've already checked this doctor
+                if (doctorGroups.ContainsKey(slot.DoctorId))
+                    continue;
+
                 // Check if this doctor has any conflicting appointments on this date/time
                 var doctorAppointments = await _appointmentRepository.GetByDoctorIdAsync(slot.DoctorId);
 
                 var hasConflict = doctorAppointments.Any(apt =>
                     apt.AppointmentDate == date &&
-                    ((start >= apt.StartTime && start < apt.EndTime) ||  // Request starts during existing appointment
-                     (end > apt.StartTime && end <= apt.EndTime) ||      // Request ends during existing appointment
-                     (start <= apt.StartTime && end >= apt.EndTime))     // Request completely overlaps existing appointment
+                    ((start >= apt.StartTime && start < apt.EndTime) ||
+                     (end > apt.StartTime && end <= apt.EndTime) ||
+                     (start <= apt.StartTime && end >= apt.EndTime))
                 );
 
                 if (!hasConflict)
                 {
                     var doctor = await _userRepository.GetByIdAsync(slot.DoctorId);
-                    result.Add(new
+
+                    // Add only once per doctor (using first matching availability slot)
+                    doctorGroups[slot.DoctorId] = new
                     {
-                        slot.Id,
+                        slot.Id, // Use the availability slot ID
                         slot.DoctorId,
                         DoctorName = doctor?.Name
-                    });
+                    };
                 }
             }
 
-            return Ok(result);
+            return Ok(doctorGroups.Values);
         }
 
         [HttpPost("assign")]
