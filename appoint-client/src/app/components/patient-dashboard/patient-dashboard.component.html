@@ -1,0 +1,27 @@
+<div class="dashboard-container">
+  <!-- Top Toolbar -->
+  <mat-toolbar color="primary">
+    <span>Patient Dashboard</span>
+    <span class="spacer"></span>
+    <span>Welcome, {{ userName }}</span>
+    <button mat-button (click)="logout()">Logout</button>
+  </mat-toolbar>
+
+  <!-- Instructions -->
+  <mat-card class="instructions-card">
+    <mat-card-content>
+      <h3>📅 How to Request an Appointment:</h3>
+      <p>Click on any <strong>future date</strong> on the calendar to request an appointment time.</p>
+      <ul>
+        <li><span class="color-box orange"></span> <strong>Orange</strong> = Pending Request</li>
+        <li><span class="color-box green"></span> <strong>Green</strong> = Approved Request</li>
+        <li><span class="color-box blue"></span> <strong>Blue</strong> = Confirmed Appointment</li>
+      </ul>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Calendar -->
+  <div class="calendar-wrapper">
+    <full-calendar [options]="calendarOptions"></full-calendar>
+  </div>
+</div>

@@ -1,0 +1,27 @@
+<div class="dashboard-container">
+  <!-- Top Toolbar -->
+  <mat-toolbar color="primary">
+    <span>Doctor Dashboard</span>
+    <span class="spacer"></span>
+    <span>Welcome, Dr. {{ userName }}</span>
+    <button mat-button (click)="logout()">Logout</button>
+  </mat-toolbar>
+
+  <!-- Instructions -->
+  <mat-card class="instructions-card">
+    <mat-card-content>
+      <h3>📅 How to Manage Availability:</h3>
+      <p>Click on any <strong>future date</strong> to set your availability. Click on existing slots to delete (if not booked).</p>
+      <ul>
+        <li><span class="color-box green"></span> <strong>Green</strong> = Available (click to delete)</li>
+        <li><span class="color-box gray"></span> <strong>Gray</strong> = Booked (cannot delete)</li>
+        <li><span class="color-box blue"></span> <strong>Blue</strong> = Confirmed Appointment</li>
+      </ul>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Calendar -->
+  <div class="calendar-wrapper">
+    <full-calendar [options]="calendarOptions"></full-calendar>
+  </div>
+</div>

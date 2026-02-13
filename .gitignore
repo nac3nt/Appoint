@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Client
+appoint-client/.vscode
+appoint-client/node_modules
+appoint-client/.angular

@@ -1,0 +1,66 @@
+/* You can add global styles to this file, and also import other style files */
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* FullCalendar custom styles */
+.fc {
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+.fc-event {
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 13px;
+}
+
+.fc-event-title {
+  font-weight: 500;
+}
+
+.fc-daygrid-day-number {
+  font-size: 14px;
+  padding: 8px;
+}
+
+.fc-col-header-cell {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+/* Material Dialog customization */
+.mat-mdc-dialog-container {
+  padding: 0 !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

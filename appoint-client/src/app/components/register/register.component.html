@@ -1,0 +1,88 @@
+<div class="register-container">
+  <mat-card class="register-card">
+    <mat-card-header>
+      <mat-card-title>
+        <h1>🏥 Create Account</h1>
+        <p class="subtitle">Join the Appointment System</p>
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form (ngSubmit)="register()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Full Name</mat-label>
+          <input
+            matInput
+            [(ngModel)]="name"
+            name="name"
+            placeholder="John Doe"
+            required
+            [disabled]="loading"
+          >
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input
+            matInput
+            type="email"
+            [(ngModel)]="email"
+            name="email"
+            placeholder="your@email.com"
+            required
+            [disabled]="loading"
+          >
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            type="password"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="Min 6 characters"
+            required
+            [disabled]="loading"
+          >
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Register As</mat-label>
+          <mat-select [(ngModel)]="role" name="role" required [disabled]="loading">
+            <mat-option *ngFor="let r of roles" [value]="r.value">
+              {{ r.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div *ngIf="error" class="error-message">
+          {{ error }}
+        </div>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          class="full-width register-button"
+          [disabled]="loading"
+        >
+          <mat-spinner *ngIf="loading" diameter="20" class="spinner"></mat-spinner>
+          <span *ngIf="!loading">Register</span>
+        </button>
+      </form>
+    </mat-card-content>
+
+    <mat-card-actions>
+      <button
+        mat-button
+        type="button"
+        class="full-width"
+        (click)="goToLogin()"
+        [disabled]="loading"
+      >
+        Already have an account? <strong>Login</strong>
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>
