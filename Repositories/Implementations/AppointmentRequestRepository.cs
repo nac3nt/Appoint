@@ -1,4 +1,5 @@
 ﻿using Appoint.Data;
+using Appoint.Enums;
 using Appoint.Models;
 using Appoint.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ namespace Appoint.Repositories.Implementations
         public async Task<IEnumerable<AppointmentRequest>> GetPendingRequestsAsync()
         {
             return await _dbSet
-                .Where(r => r.Status == "Pending")
+                .Where(r => r.Status == AppointmentStatus.Pending)
                 .OrderBy(r => r.RequestDate)
                 .ThenBy(r => r.StartTime)
                 .ToListAsync<AppointmentRequest>();

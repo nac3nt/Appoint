@@ -36,12 +36,11 @@ namespace Appoint.Controllers
                 DoctorId = GetCurrentUserId(),
                 AvailableDate = dto.AvailableDate,
                 StartTime = dto.StartTime,
-                EndTime = dto.EndTime,
-                IsBooked = false
+                EndTime = dto.EndTime
             };
 
             var created = await _availabilityRepository.AddAsync(availability);
-            return Ok(created);
+            return CreatedAtAction(nameof(GetMyAvailability), created);
         }
 
         [HttpGet("availability")]
@@ -67,7 +66,6 @@ namespace Appoint.Controllers
             if (availability == null)
                 return NotFound();
 
-            // Verify ownership
             if (availability.DoctorId != GetCurrentUserId())
                 return Forbid();
 
@@ -83,7 +81,7 @@ namespace Appoint.Controllers
                 return BadRequest(new { message = "Cannot delete availability slot with existing appointments" });
 
             var deleted = await _availabilityRepository.DeleteAsync(id);
-            return deleted ? Ok() : NotFound();
+            return deleted ? NoContent() : NotFound();
         }
     }
 }

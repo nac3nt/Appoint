@@ -1,12 +1,5 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
 import { FullCalendarModule } from '@fullcalendar/angular';
 import { CalendarOptions, EventClickArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -20,10 +13,6 @@ import { AppointmentRequest, AvailableDoctor } from '../../models/models';
   standalone: true,
   imports: [
     CommonModule,
-    MatButtonModule,
-    MatCardModule,
-    MatToolbarModule,
-    MatDialogModule,
     FullCalendarModule
   ],
   templateUrl: './admin-dashboard.component.html',
@@ -31,6 +20,11 @@ import { AppointmentRequest, AvailableDoctor } from '../../models/models';
 })
 export class AdminDashboardComponent implements OnInit {
   userName: string = '';
+  showAssignDialog = false;
+  currentRequest: AppointmentRequest | null = null;
+  availableDoctors: AvailableDoctor[] = [];
+  searched = false;
+  loading = false;
   calendarOptions: CalendarOptions = {
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
@@ -48,8 +42,7 @@ export class AdminDashboardComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private apiService: ApiService,
-    private dialog: MatDialog
+    private apiService: ApiService
   ) {
     const user = this.authService.getCurrentUser();
     this.userName = user?.name || '';
@@ -98,17 +91,12 @@ export class AdminDashboardComponent implements OnInit {
     const eventData = arg.event.extendedProps['data'];
 
     if (eventType === 'request') {
-      // Open dialog to assign doctor
-      const dialogRef = this.dialog.open(AssignDoctorDialog, {
-        width: '500px',
-        data: { request: eventData }
-      });
-
-      dialogRef.afterClosed().subscribe(result => {
-        if (result) {
-          this.loadCalendarData(); // Refresh calendar
-        }
-      });
+      // Open modal to assign doctor
+      this.showAssignDialog = true;
+      this.currentRequest = eventData;
+      this.availableDoctors = [];
+      this.searched = false;
+      this.loading = false;
     } else if (eventType === 'appointment') {
       alert(`Confirmed Appointment\nTime: ${eventData.startTime} - ${eventData.endTime}\nStatus: ${eventData.status}`);
     }
@@ -117,101 +105,16 @@ export class AdminDashboardComponent implements OnInit {
   logout(): void {
     this.authService.logout();
   }
-}
-
-// Assign Doctor Dialog Component
-@Component({
-  selector: 'assign-doctor-dialog',
-  standalone: true,
-  imports: [
-    CommonModule, 
-    MatDialogModule, 
-    MatButtonModule, 
-    MatListModule, 
-    MatIconModule,
-    MatDividerModule
-  ],
-  template: `
-    <h2 mat-dialog-title>Assign Doctor to Request</h2>
-    <mat-dialog-content>
-      <div class="request-details">
-        <p><strong>Date:</strong> {{ data.request.requestDate }}</p>
-        <p><strong>Time:</strong> {{ data.request.startTime }} - {{ data.request.endTime }}</p>
-        <p><strong>Status:</strong> {{ data.request.status }}</p>
-      </div>
-
-      <mat-divider></mat-divider>
-
-      <div class="actions-section">
-        <button mat-raised-button color="primary" (click)="findDoctors()" [disabled]="loading">
-          {{ loading ? 'Searching...' : 'Find Available Doctors' }}
-        </button>
-      </div>
-
-      <div *ngIf="searched && availableDoctors.length === 0" class="no-doctors">
-        <mat-icon color="warn">warning</mat-icon>
-        <p>No doctors available for this time slot</p>
-      </div>
-
-      <mat-list *ngIf="availableDoctors.length > 0">
-        <h3 mat-subheader>Available Doctors</h3>
-        <mat-list-item *ngFor="let doctor of availableDoctors">
-          <mat-icon matListItemIcon>person</mat-icon>
-          <div matListItemTitle>{{ doctor.doctorName }}</div>
-          <button mat-raised-button color="accent" (click)="assignDoctor(doctor)">
-            Assign
-          </button>
-        </mat-list-item>
-      </mat-list>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button [mat-dialog-close]>Close</button>
-    </mat-dialog-actions>
-  `,
-  styles: [`
-    .request-details {
-      margin-bottom: 20px;
-    }
-    .request-details p {
-      margin: 8px 0;
-    }
-    .actions-section {
-      margin: 20px 0;
-    }
-    .no-doctors {
-      text-align: center;
-      padding: 20px;
-      color: #f44336;
-    }
-    .no-doctors mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-    }
-    mat-list-item {
-      margin-bottom: 10px;
-    }
-  `]
-})
-export class AssignDoctorDialog {
-  availableDoctors: AvailableDoctor[] = [];
-  searched = false;
-  loading = false;
-
-  constructor(
-    public dialogRef: MatDialogRef<AssignDoctorDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: any,
-    private apiService: ApiService
-  ) {}
 
   findDoctors(): void {
+    if (!this.currentRequest) return;
     this.loading = true;
     this.searched = false;
 
     this.apiService.getAvailableDoctors(
-      this.data.request.requestDate,
-      this.data.request.startTime,
-      this.data.request.endTime
+      this.currentRequest.requestDate,
+      this.currentRequest.startTime,
+      this.currentRequest.endTime
     ).subscribe({
       next: (doctors) => {
         this.availableDoctors = doctors;
@@ -227,8 +130,10 @@ export class AssignDoctorDialog {
   }
 
   assignDoctor(doctor: AvailableDoctor): void {
+    if (!this.currentRequest) return;
+    if (!this.currentRequest.id) return; // Fix TypeScript error by ensuring currentRequest is defined before accessing id
     const assignment = {
-      requestId: this.data.request.id,
+      requestId: this.currentRequest.id,
       doctorId: doctor.doctorId,
       availabilityId: doctor.id
     };
@@ -236,11 +141,20 @@ export class AssignDoctorDialog {
     this.apiService.assignAppointment(assignment).subscribe({
       next: () => {
         alert(`Appointment assigned to ${doctor.doctorName} successfully!`);
-        this.dialogRef.close(true);
+        this.closeModal();
+        this.loadCalendarData(); // Refresh calendar
       },
       error: (err) => {
         alert('Error assigning appointment: ' + err.error.message);
       }
     });
+  }
+
+  closeModal(): void {
+    this.showAssignDialog = false;
+    this.currentRequest = null;
+    this.availableDoctors = [];
+    this.searched = false;
+    this.loading = false;
   }
 }

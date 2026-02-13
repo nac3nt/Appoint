@@ -2,12 +2,6 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../services/auth.service';
 import { RegisterRequest } from '../../models/models';
 
@@ -16,13 +10,7 @@ import { RegisterRequest } from '../../models/models';
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    MatCardModule,
-    MatInputModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatProgressSpinnerModule
+    FormsModule
   ],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.css']

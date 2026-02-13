@@ -16,11 +16,8 @@ namespace Appoint.Models
 
         public required TimeSpan EndTime { get; set; }
 
-        public bool IsBooked { get; set; } = false;
-
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        // Navigation property - nullable because EF may not load it
         [ForeignKey("DoctorId")]
         public User? Doctor { get; set; }
     }

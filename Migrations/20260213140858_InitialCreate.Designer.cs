@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Appoint.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260213105033_InitialCreate")]
+    [Migration("20260213140858_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -126,9 +126,6 @@ namespace Appoint.Migrations
 
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
-
-                    b.Property<bool>("IsBooked")
-                        .HasColumnType("bit");
 
                     b.Property<TimeSpan>("StartTime")
                         .HasColumnType("time");

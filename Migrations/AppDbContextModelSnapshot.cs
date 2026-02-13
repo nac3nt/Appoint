@@ -124,9 +124,6 @@ namespace Appoint.Migrations
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
 
-                    b.Property<bool>("IsBooked")
-                        .HasColumnType("bit");
-
                     b.Property<TimeSpan>("StartTime")
                         .HasColumnType("time");
 

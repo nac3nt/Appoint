@@ -1,5 +1,5 @@
 /* You can add global styles to this file, and also import other style files */
-@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
 
 * {
   margin: 0;
@@ -39,11 +39,6 @@ body {
 .fc-col-header-cell {
   background-color: #f5f5f5;
   font-weight: 600;
-}
-
-/* Material Dialog customization */
-.mat-mdc-dialog-container {
-  padding: 0 !important;
 }
 
 /* Scrollbar styling */

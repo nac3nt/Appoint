@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Appoint.Enums;
 
 namespace Appoint.Models
 {
@@ -20,8 +21,7 @@ namespace Appoint.Models
 
         public required TimeSpan EndTime { get; set; }
 
-        [MaxLength(20)]
-        public string Status { get; set; } = "Scheduled";
+        public AppointmentStatus Status { get; set; } = AppointmentStatus.Scheduled;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 

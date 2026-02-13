@@ -1,4 +1,5 @@
 ﻿using Appoint.DTOs;
+using Appoint.Enums;
 using Appoint.Models;
 using Appoint.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -37,11 +38,11 @@ namespace Appoint.Controllers
                 RequestDate = dto.RequestDate,
                 StartTime = dto.StartTime,
                 EndTime = dto.EndTime,
-                Status = "Pending"
+                Status = AppointmentStatus.Pending
             };
 
             var created = await _requestRepository.AddAsync(request);
-            return Ok(created);
+            return CreatedAtAction(nameof(GetMyRequests), created);
         }
 
         [HttpGet("my-requests")]

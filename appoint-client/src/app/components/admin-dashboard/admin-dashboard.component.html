@@ -1,26 +1,67 @@
 <div class="dashboard-container">
   <!-- Top Toolbar -->
-  <mat-toolbar color="primary">
+  <header class="toolbar">
     <span>Admin Dashboard</span>
     <span class="spacer"></span>
     <span>Welcome, {{ userName }}</span>
-    <button mat-button (click)="logout()">Logout</button>
-  </mat-toolbar>
+    <button class="btn btn-secondary" (click)="logout()">Logout</button>
+  </header>
 
   <!-- Instructions -->
-  <mat-card class="instructions-card">
-    <mat-card-content>
+  <div class="instructions-card">
+    <div class="card-content">
       <h3>📅 Admin Calendar Management:</h3>
       <p>Click on <strong>orange events</strong> (patient requests) to assign them to available doctors.</p>
       <ul>
         <li><span class="color-box orange"></span> <strong>Orange</strong> = Pending Patient Request (click to assign)</li>
         <li><span class="color-box blue"></span> <strong>Blue</strong> = Confirmed Appointment</li>
       </ul>
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </div>
 
   <!-- Calendar -->
   <div class="calendar-wrapper">
     <full-calendar [options]="calendarOptions"></full-calendar>
+  </div>
+</div>
+
+<!-- Assign Doctor Modal -->
+<div *ngIf="showAssignDialog" class="modal" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h2>Assign Doctor to Request</h2>
+    <div class="modal-body">
+      <div class="request-details">
+        <p><strong>Date:</strong> {{ currentRequest?.requestDate }}</p>
+        <p><strong>Time:</strong> {{ currentRequest?.startTime }} - {{ currentRequest?.endTime }}</p>
+        <p><strong>Status:</strong> {{ currentRequest?.status }}</p>
+      </div>
+
+      <hr>
+
+      <div class="actions-section">
+        <button class="btn btn-primary" (click)="findDoctors()" [disabled]="loading">
+          {{ loading ? 'Searching...' : 'Find Available Doctors' }}
+        </button>
+      </div>
+
+      <div *ngIf="searched && availableDoctors.length === 0" class="no-doctors">
+        <span class="warning-icon">⚠️</span>
+        <p>No doctors available for this time slot</p>
+      </div>
+
+      <ul *ngIf="availableDoctors.length > 0" class="doctor-list">
+        <h3>Available Doctors</h3>
+        <li *ngFor="let doctor of availableDoctors" class="doctor-item">
+          <span class="person-icon">👤</span>
+          <div class="doctor-name">{{ doctor.doctorName }}</div>
+          <button class="btn btn-accent" (click)="assignDoctor(doctor)">
+            Assign
+          </button>
+        </li>
+      </ul>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" (click)="closeModal()">Close</button>
+    </div>
   </div>
 </div>

@@ -1,4 +1,5 @@
 ﻿using Appoint.DTOs;
+using Appoint.Enums;
 using Appoint.Models;
 using Appoint.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -41,7 +42,6 @@ namespace Appoint.Controllers
             var start = TimeSpan.Parse(startTime);
             var end = TimeSpan.Parse(endTime);
 
-            // Get all doctors who have availability on this date
             var availableSlots = await _availabilityRepository.GetAvailableDoctorsAsync(date, start, end);
 
             var result = new List<object>();
@@ -97,7 +97,6 @@ namespace Appoint.Controllers
             if (hasConflict)
                 return BadRequest(new { message = "Doctor already has an appointment at this time" });
 
-            // Create appointment
             var appointment = new Appointment
             {
                 RequestId = dto.RequestId,
@@ -106,19 +105,15 @@ namespace Appoint.Controllers
                 AppointmentDate = request.RequestDate,
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
-                Status = "Scheduled"
+                Status = AppointmentStatus.Scheduled
             };
 
             await _appointmentRepository.AddAsync(appointment);
 
-            // Update request status
-            request.Status = "Approved";
+            request.Status = AppointmentStatus.Approved;
             await _requestRepository.UpdateAsync(request);
 
-            // DO NOT mark availability as booked - it can handle multiple appointments
-            // availability.IsBooked = true;  // REMOVE THIS LINE
-
-            return Ok(appointment);
+            return CreatedAtAction(nameof(GetAllAppointments), appointment);
         }
 
         [HttpGet("all-appointments")]

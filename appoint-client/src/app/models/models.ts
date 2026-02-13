@@ -33,7 +33,6 @@ export interface DoctorAvailability {
   availableDate: string;
   startTime: string;
   endTime: string;
-  isBooked?: boolean;
   createdAt?: string;
 }
 

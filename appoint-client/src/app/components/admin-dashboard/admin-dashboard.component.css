@@ -4,12 +4,76 @@
   flex-direction: column;
 }
 
+.toolbar {
+  background-color: #1976d2;
+  color: white;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toolbar span:first-child {
+  font-size: 20px;
+  font-weight: 500;
+}
+
 .spacer {
   flex: 1 1 auto;
 }
 
+.btn {
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 16px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  transition: background-color 0.3s;
+  margin-left: 16px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-primary {
+  background-color: #1976d2;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #1565c0;
+}
+
+.btn-accent {
+  background-color: #ff9800;
+  color: white;
+}
+
+.btn-accent:hover:not(:disabled) {
+  background-color: #f57c00;
+}
+
 .instructions-card {
   margin: 20px;
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .instructions-card h3 {
@@ -60,4 +124,99 @@
 
 ::ng-deep .fc-event:hover {
   opacity: 0.8;
+}
+
+/* Modal styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  color: #1976d2;
+}
+
+.modal-body {
+  margin: 20px 0;
+}
+
+.request-details {
+  margin-bottom: 20px;
+}
+
+.request-details p {
+  margin: 8px 0;
+}
+
+.actions-section {
+  margin: 20px 0;
+}
+
+.no-doctors {
+  text-align: center;
+  padding: 20px;
+  color: #f44336;
+}
+
+.warning-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.doctor-list {
+  list-style: none;
+  padding: 0;
+}
+
+.doctor-list h3 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  color: #1976d2;
+}
+
+.doctor-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.person-icon {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.doctor-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
 }

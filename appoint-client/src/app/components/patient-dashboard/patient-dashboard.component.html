@@ -1,15 +1,15 @@
 <div class="dashboard-container">
   <!-- Top Toolbar -->
-  <mat-toolbar color="primary">
+  <header class="toolbar">
     <span>Patient Dashboard</span>
     <span class="spacer"></span>
     <span>Welcome, {{ userName }}</span>
-    <button mat-button (click)="logout()">Logout</button>
-  </mat-toolbar>
+    <button class="btn btn-secondary" (click)="logout()">Logout</button>
+  </header>
 
   <!-- Instructions -->
-  <mat-card class="instructions-card">
-    <mat-card-content>
+  <div class="instructions-card">
+    <div class="card-content">
       <h3>📅 How to Request an Appointment:</h3>
       <p>Click on any <strong>future date</strong> on the calendar to request an appointment time.</p>
       <ul>
@@ -17,11 +17,37 @@
         <li><span class="color-box green"></span> <strong>Green</strong> = Approved Request</li>
         <li><span class="color-box blue"></span> <strong>Blue</strong> = Confirmed Appointment</li>
       </ul>
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </div>
 
   <!-- Calendar -->
   <div class="calendar-wrapper">
     <full-calendar [options]="calendarOptions"></full-calendar>
+  </div>
+</div>
+
+<!-- Time Selection Modal -->
+<div *ngIf="showTimeModal" class="modal" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h2>Select Appointment Time</h2>
+    <div class="modal-body">
+      <p><strong>Date:</strong> {{ selectedDate }}</p>
+
+      <div class="form-field full-width">
+        <label for="startTime">Start Time</label>
+        <input type="time" id="startTime" [(ngModel)]="startTime" required>
+      </div>
+
+      <div class="form-field full-width">
+        <label for="endTime">End Time</label>
+        <input type="time" id="endTime" [(ngModel)]="endTime" required>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary" [disabled]="!startTime || !endTime" (click)="submitRequest()">
+        Submit Request
+      </button>
+    </div>
   </div>
 </div>
