@@ -1,9 +1,7 @@
 ﻿using Appoint.DTOs;
-using Appoint.Helpers;
 using Appoint.Models;
-using Appoint.Repositories.Interfaces;
+using Appoint.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace Appoint.Controllers
 {
@@ -11,61 +9,30 @@ namespace Appoint.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly IUserRepository _userRepository;
-        private readonly JwtHelper _jwtHelper;
+        private readonly IAuthService _authService;
 
-        public AuthController(IUserRepository userRepository, JwtHelper jwtHelper)
+        public AuthController(IAuthService authService)
         {
-            _userRepository = userRepository;
-            _jwtHelper = jwtHelper;
+            _authService = authService;
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto dto)
+        [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginDto dto)
         {
-            var user = await _userRepository.AuthenticateAsync(dto.Email, dto.Password);
-
-            if (user == null)
-                return Unauthorized(new { message = "Invalid email or password" });
-
-            var token = _jwtHelper.GenerateToken(user);
-
-            return Ok(new
-            {
-                Token = token,
-                User = new
-                {
-                    user.Id,
-                    user.Email,
-                    user.Role,
-                    user.Name
-                }
-            });
+            var result = await _authService.LoginAsync(dto);
+            return Ok(result);
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+        [ProducesResponseType(typeof(User), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<User>> Register([FromBody] RegisterDto dto)
         {
-            var existingUser = await _userRepository.GetByEmailAsync(dto.Email);
-            if (existingUser != null)
-                return BadRequest(new { message = "Email already exists" });
-
-            var validRoles = new[] { "Patient", "Doctor", "Admin" };
-            if (!validRoles.Contains(dto.Role))
-                return BadRequest(new { message = "Invalid role. Must be Patient, Doctor, or Admin" });
-
-            var user = new User
-            {
-                Email = dto.Email,
-                Name = dto.Name,
-                Role = dto.Role,
-                PasswordHash = "" // Temporary, will be set below
-            };
-            user.SetPassword(dto.Password);
-
-            await _userRepository.AddAsync(user);
-
-            return Ok(new { message = "User registered successfully" });
+            var user = await _authService.RegisterAsync(dto);
+            return CreatedAtAction(nameof(Register), new { id = user.Id }, new { message = "User registered successfully" });
         }
     }
 }

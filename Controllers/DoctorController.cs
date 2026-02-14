@@ -1,6 +1,6 @@
 ﻿using Appoint.DTOs;
 using Appoint.Models;
-using Appoint.Repositories.Interfaces;
+using Appoint.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -12,15 +12,11 @@ namespace Appoint.Controllers
     [Authorize(Roles = "Doctor")]
     public class DoctorController : ControllerBase
     {
-        private readonly IDoctorAvailabilityRepository _availabilityRepository;
-        private readonly IAppointmentRepository _appointmentRepository;
+        private readonly IDoctorService _doctorService;
 
-        public DoctorController(
-            IDoctorAvailabilityRepository availabilityRepository,
-            IAppointmentRepository appointmentRepository)
+        public DoctorController(IDoctorService doctorService)
         {
-            _availabilityRepository = availabilityRepository;
-            _appointmentRepository = appointmentRepository;
+            _doctorService = doctorService;
         }
 
         private int GetCurrentUserId()
@@ -29,75 +25,55 @@ namespace Appoint.Controllers
         }
 
         [HttpPost("availability")]
-        public async Task<IActionResult> AddAvailability([FromBody] CreateAvailabilityDto dto)
+        [ProducesResponseType(typeof(DoctorAvailability), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<DoctorAvailability>> AddAvailability([FromBody] CreateAvailabilityDto dto)
         {
             var userId = GetCurrentUserId();
+            var result = await _doctorService.AddAvailabilityAsync(userId, dto);
+            return CreatedAtAction(nameof(GetAvailability), new { id = result.Id }, result);
+        }
 
-            // Check if doctor already has OVERLAPPING availability on this date
-            var existingAvailability = await _availabilityRepository.GetByDoctorIdAsync(userId);
+        [HttpGet("availability/{id}")]
+        [ProducesResponseType(typeof(DoctorAvailability), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<DoctorAvailability>> GetAvailability(int id)
+        {
+            var availability = await _doctorService.GetAvailabilityByIdAsync(id);
 
-            var hasOverlap = existingAvailability.Any(avail =>
-                avail.AvailableDate == dto.AvailableDate &&
-                // Check for actual time overlap (not just same day)
-                ((dto.StartTime < avail.EndTime && dto.EndTime > avail.StartTime))
-            );
+            if (availability == null)
+                return NotFound();
 
-            if (hasOverlap)
-            {
-                return BadRequest(new { message = "This time overlaps with your existing availability. Please choose a different time or delete the overlapping slot first." });
-            }
-
-            var availability = new DoctorAvailability
-            {
-                DoctorId = userId,
-                AvailableDate = dto.AvailableDate,
-                StartTime = dto.StartTime,
-                EndTime = dto.EndTime
-            };
-
-            var created = await _availabilityRepository.AddAsync(availability);
-            return Ok(created);
+            return availability;
         }
 
         [HttpGet("availability")]
-        public async Task<IActionResult> GetMyAvailability()
+        [ProducesResponseType(typeof(IEnumerable<DoctorAvailability>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<DoctorAvailability>>> GetMyAvailability()
         {
             var userId = GetCurrentUserId();
-            var slots = await _availabilityRepository.GetByDoctorIdAsync(userId);
+            var slots = await _doctorService.GetMyAvailabilityAsync(userId);
             return Ok(slots);
         }
 
         [HttpGet("my-appointments")]
-        public async Task<IActionResult> GetMyAppointments()
+        [ProducesResponseType(typeof(IEnumerable<Appointment>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<Appointment>>> GetMyAppointments()
         {
             var userId = GetCurrentUserId();
-            var appointments = await _appointmentRepository.GetByDoctorIdAsync(userId);
+            var appointments = await _doctorService.GetMyAppointmentsAsync(userId);
             return Ok(appointments);
         }
 
         [HttpDelete("availability/{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> DeleteAvailability(int id)
         {
-            var availability = await _availabilityRepository.GetByIdAsync(id);
-            if (availability == null)
-                return NotFound();
-
-            if (availability.DoctorId != GetCurrentUserId())
-                return Forbid();
-
-            // Check if there are any appointments within this availability slot
-            var appointments = await _appointmentRepository.GetByDoctorIdAsync(availability.DoctorId);
-            var hasAppointments = appointments.Any(apt =>
-                apt.AppointmentDate == availability.AvailableDate &&
-                apt.StartTime >= availability.StartTime &&
-                apt.EndTime <= availability.EndTime
-            );
-
-            if (hasAppointments)
-                return BadRequest(new { message = "Cannot delete availability slot with existing appointments" });
-
-            var deleted = await _availabilityRepository.DeleteAsync(id);
-            return deleted ? NoContent() : NotFound();
+            var userId = GetCurrentUserId();
+            await _doctorService.DeleteAvailabilityAsync(userId, id);
+            return NoContent();
         }
     }
 }

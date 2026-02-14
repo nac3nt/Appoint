@@ -1,7 +1,6 @@
 ﻿using Appoint.DTOs;
-using Appoint.Enums;
 using Appoint.Models;
-using Appoint.Repositories.Interfaces;
+using Appoint.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -13,15 +12,11 @@ namespace Appoint.Controllers
     [Authorize(Roles = "Patient")]
     public class PatientController : ControllerBase
     {
-        private readonly IAppointmentRequestRepository _requestRepository;
-        private readonly IAppointmentRepository _appointmentRepository;
+        private readonly IPatientService _patientService;
 
-        public PatientController(
-            IAppointmentRequestRepository requestRepository,
-            IAppointmentRepository appointmentRepository)
+        public PatientController(IPatientService patientService)
         {
-            _requestRepository = requestRepository;
-            _appointmentRepository = appointmentRepository;
+            _patientService = patientService;
         }
 
         private int GetCurrentUserId()
@@ -30,34 +25,30 @@ namespace Appoint.Controllers
         }
 
         [HttpPost("request")]
-        public async Task<IActionResult> CreateRequest([FromBody] CreateAppointmentRequestDto dto)
+        [ProducesResponseType(typeof(AppointmentRequest), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<AppointmentRequest>> CreateRequest([FromBody] CreateAppointmentRequestDto dto)
         {
-            var request = new AppointmentRequest
-            {
-                PatientId = GetCurrentUserId(),
-                RequestDate = dto.RequestDate,
-                StartTime = dto.StartTime,
-                EndTime = dto.EndTime,
-                Status = AppointmentStatus.Pending
-            };
-
-            var created = await _requestRepository.AddAsync(request);
-            return CreatedAtAction(nameof(GetMyRequests), created);
+            var userId = GetCurrentUserId();
+            var result = await _patientService.CreateRequestAsync(userId, dto);
+            return CreatedAtAction(nameof(GetMyRequests), new { id = result.Id }, result);
         }
 
         [HttpGet("my-requests")]
-        public async Task<IActionResult> GetMyRequests()
+        [ProducesResponseType(typeof(IEnumerable<AppointmentRequest>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<AppointmentRequest>>> GetMyRequests()
         {
             var userId = GetCurrentUserId();
-            var requests = await _requestRepository.GetByPatientIdAsync(userId);
+            var requests = await _patientService.GetMyRequestsAsync(userId);
             return Ok(requests);
         }
 
         [HttpGet("my-appointments")]
-        public async Task<IActionResult> GetMyAppointments()
+        [ProducesResponseType(typeof(IEnumerable<Appointment>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<Appointment>>> GetMyAppointments()
         {
             var userId = GetCurrentUserId();
-            var appointments = await _appointmentRepository.GetByPatientIdAsync(userId);
+            var appointments = await _patientService.GetMyAppointmentsAsync(userId);
             return Ok(appointments);
         }
     }

@@ -1,7 +1,10 @@
 using Appoint.Data;
 using Appoint.Helpers;
+using Appoint.Middleware;
 using Appoint.Repositories.Implementations;
 using Appoint.Repositories.Interfaces;
+using Appoint.Services.Implementations;
+using Appoint.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -29,11 +32,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-// Register Repositories
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IDoctorAvailabilityRepository, DoctorAvailabilityRepository>();
-builder.Services.AddScoped<IAppointmentRequestRepository, AppointmentRequestRepository>();
-builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+// Register Generic Repository
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+// Register Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPatientService, PatientService>();
+builder.Services.AddScoped<IDoctorService, DoctorService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 // Register Helpers
 builder.Services.AddSingleton<JwtHelper>();
@@ -52,7 +58,7 @@ builder.Services.AddAuthentication(options =>
 .AddJwtBearer(options =>
 {
     options.SaveToken = true;
-    options.RequireHttpsMetadata = false; // Set to true in production
+    options.RequireHttpsMetadata = false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -64,54 +70,17 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
         ClockSkew = TimeSpan.Zero
     };
-
-    // Handle authentication failures
-    options.Events = new JwtBearerEvents
-    {
-        OnAuthenticationFailed = context =>
-        {
-            Console.WriteLine($"Authentication failed: {context.Exception.Message}");
-            return Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {
-            Console.WriteLine($"Token validated for: {context.Principal?.Identity?.Name}");
-            return Task.CompletedTask;
-        }
-    };
 });
 
 // Authorization
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-    options.AddPolicy("DoctorOnly", policy => policy.RequireRole("Doctor"));
-    options.AddPolicy("PatientOnly", policy => policy.RequireRole("Patient"));
-    options.AddPolicy("DoctorOrAdmin", policy => policy.RequireRole("Doctor", "Admin"));
-});
+builder.Services.AddAuthorization();
 
 // CORS Configuration
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-
-    // More restrictive policy for production
-    options.AddPolicy("Production", policy =>
-    {
-        policy.WithOrigins("http://localhost:4200", "https://yourdomain.com")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
-    });
-
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("http://localhost:4200") // Angular dev server
+        policy.WithOrigins("http://localhost:4200")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -123,38 +92,15 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    // Map OpenAPI endpoint
     app.MapOpenApi();
-
-    // Map Scalar API Documentation
-    app.MapScalarApiReference(options =>
-    {
-        options
-            .WithTitle("Appointment System API")
-            .WithTheme(ScalarTheme.Purple)
-            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-    });
+    app.MapScalarApiReference();
 }
 
-// Global exception handler
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        context.Response.StatusCode = 500;
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsJsonAsync(new
-        {
-            error = "An unexpected error occurred",
-            timestamp = DateTime.UtcNow
-        });
-    });
-});
+// ⚡ CRITICAL: Add exception handling middleware FIRST
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.UseHttpsRedirection();
-
-// Use CORS
-app.UseCors("AllowAll"); // Change to "Production" in production
+// CORS must be BEFORE Authentication/Authorization
+app.UseCors("AllowAngular");
 
 // Authentication & Authorization
 app.UseAuthentication();
@@ -169,7 +115,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        context.Database.Migrate(); // Auto-apply migrations
+        context.Database.Migrate();
         Console.WriteLine("Database migration completed successfully");
     }
     catch (Exception ex)
