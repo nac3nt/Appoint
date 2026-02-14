@@ -1,3 +1,5 @@
+import { AppointmentStatus } from "./enums";
+
 export interface User {
   id: number;
   email: string;
@@ -23,7 +25,7 @@ export interface AppointmentRequest {
   requestDate: string;
   startTime: string;
   endTime: string;
-  status?: string;
+  status: AppointmentStatus;
   createdAt?: string;
 }
 
@@ -60,7 +62,7 @@ export interface AssignAppointmentRequest {
   availabilityId: number;
 }
 
-// Calendar Event Interface
+
 export interface CalendarEvent {
   id?: string;
   title: string;
@@ -69,4 +71,18 @@ export interface CalendarEvent {
   backgroundColor?: string;
   borderColor?: string;
   extendedProps?: any;
+}
+
+export interface Notification {
+  id: number;
+  userId: number;
+  title: string;
+  message: string;
+  doctorName?: string;
+  patientName?: string;
+  appointmentDate: string;
+  appointmentStartTime: string;
+  appointmentEndTime: string;
+  relatedAppointmentId: number;
+  createdAt: string;
 }

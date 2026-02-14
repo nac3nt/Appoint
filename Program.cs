@@ -13,11 +13,9 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Add OpenAPI/Swagger generation (required for Scalar)
 builder.Services.AddOpenApi();
 
 // Database Context
@@ -40,6 +38,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Register Helpers
 builder.Services.AddSingleton<JwtHelper>();
@@ -72,7 +71,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Authorization
 builder.Services.AddAuthorization();
 
 // CORS Configuration
@@ -96,13 +94,11 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-// ⚡ CRITICAL: Add exception handling middleware FIRST
+// Add exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// CORS must be BEFORE Authentication/Authorization
 app.UseCors("AllowAngular");
 
-// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 

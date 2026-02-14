@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FullCalendarModule } from '@fullcalendar/angular';
@@ -7,7 +7,10 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
-import { AppointmentRequest } from '../../models/models';
+import { AppointmentRequest, Notification } from '../../models/models';
+import { AlertModalComponent } from '../alert-modal/alert-modal.component';
+import { TimeFormatPipe } from '../../pipes/time-format.pipe';
+import { AppointmentStatus, getStatusName } from '../../models/enums';
 
 @Component({
   selector: 'app-patient-dashboard',
@@ -15,7 +18,9 @@ import { AppointmentRequest } from '../../models/models';
   imports: [
     CommonModule,
     FormsModule,
-    FullCalendarModule
+    FullCalendarModule,
+    AlertModalComponent,
+    TimeFormatPipe
   ],
   templateUrl: './patient-dashboard.component.html',
   styleUrls: ['./patient-dashboard.component.css']
@@ -26,6 +31,19 @@ export class PatientDashboardComponent implements OnInit {
   selectedDate = '';
   startTime = '';
   endTime = '';
+  
+  // Notification properties
+  notifications: Notification[] = [];
+  notificationCount: number = 0;
+  showNotifications: boolean = false;
+  selectedNotification: Notification | null = null;
+
+  // Alert modal properties
+  showAlert = false;
+  alertTitle = '';
+  alertMessage = '';
+  alertType: 'success' | 'error' | 'info' = 'info';
+  
   calendarOptions: CalendarOptions = {
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
@@ -40,6 +58,7 @@ export class PatientDashboardComponent implements OnInit {
     dayMaxEvents: true,
     dateClick: this.handleDateClick.bind(this),
     eventClick: this.handleEventClick.bind(this),
+    dayCellClassNames: this.getDayCellClass.bind(this),
     events: []
   };
 
@@ -52,33 +71,104 @@ export class PatientDashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadNotifications();
     this.loadCalendarData();
   }
 
+  getDayCellClass(arg: any): string[] {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const cellDate = new Date(arg.date);
+    cellDate.setHours(0, 0, 0, 0);
+    
+    if (cellDate <= today) {
+      return ['past-date'];
+    }
+    return [];
+  }
+
+  loadNotifications(): void {
+    this.apiService.getMyNotifications().subscribe({
+      next: (notifs) => {
+        this.notifications = notifs;
+        this.notificationCount = notifs.length;
+      },
+      error: (err) => {
+        console.error('Error loading notifications:', err);
+      }
+    });
+  }
+
+  toggleNotifications(): void {
+    this.showNotifications = !this.showNotifications;
+  }
+
+  openNotificationModal(notification: Notification): void {
+    this.selectedNotification = notification;
+    this.showNotifications = false;
+  }
+
+  dismissNotification(): void {
+    if (!this.selectedNotification) return;
+
+    this.apiService.deleteNotification(this.selectedNotification.id).subscribe({
+      next: () => {
+        this.selectedNotification = null;
+        this.loadNotifications();
+      },
+      error: (err) => {
+        const errorMessage = err.error?.error || 'Failed to dismiss notification';
+        this.showAlertModal('Error', errorMessage, 'error');
+      }
+    });
+  }
+
+  closeNotificationModal(): void {
+    this.selectedNotification = null;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.notification-wrapper')) {
+      this.showNotifications = false;
+    }
+  }
+
   loadCalendarData(): void {
-    // Load patient's requests (pending - orange)
     this.apiService.getMyRequests().subscribe({
       next: (requests) => {
-        const requestEvents = requests.map(req => ({
-          id: `request-${req.id}`,
-          title: `Request: ${req.startTime} - ${req.endTime}`,
-          start: req.requestDate,
-          backgroundColor: req.status === 'Pending' ? '#ff9800' : '#4caf50',
-          borderColor: req.status === 'Pending' ? '#f57c00' : '#388e3c',
-          extendedProps: { type: 'request', data: req }
-        }));
+        const requestEvents = requests.map(req => {
+          const startTime = this.formatTime(req.startTime);
+          const endTime = this.formatTime(req.endTime);
+          const statusName = getStatusName(req.status);
 
-        // Load patient's confirmed appointments (green)
+          return {
+            id: `request-${req.id}`,
+            title: `Request: ${startTime} - ${endTime}`,
+            start: req.requestDate,
+            backgroundColor: req.status === AppointmentStatus.Pending ? '#ff9800' : '#4caf50',
+            borderColor: req.status === AppointmentStatus.Pending ? '#f57c00' : '#388e3c',
+            extendedProps: { type: 'request', data: req }
+          };
+        });
+
         this.apiService.getMyAppointments().subscribe({
           next: (appointments) => {
-            const appointmentEvents = appointments.map(apt => ({
-              id: `appointment-${apt.id}`,
-              title: `Appointment: ${apt.startTime} - ${apt.endTime}`,
-              start: apt.appointmentDate,
-              backgroundColor: '#2196f3',
-              borderColor: '#1976d2',
-              extendedProps: { type: 'appointment', data: apt }
-            }));
+            const appointmentEvents = appointments.map(apt => {
+              const startTime = this.formatTime(apt.startTime);
+              const endTime = this.formatTime(apt.endTime);
+
+              return {
+                id: `appointment-${apt.id}`,
+                title: `Appointment: ${startTime} - ${endTime}`,
+                start: apt.appointmentDate,
+                backgroundColor: '#2196f3',
+                borderColor: '#1976d2',
+                extendedProps: { type: 'appointment', data: apt }
+              };
+            });
 
             this.calendarOptions.events = [...requestEvents, ...appointmentEvents];
           }
@@ -92,12 +182,15 @@ export class PatientDashboardComponent implements OnInit {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (clickedDate < today) {
-      alert('Cannot request appointments for past dates');
+    if (clickedDate <= today) {
+      this.showAlertModal(
+        'Invalid Date',
+        'Cannot request appointments for past dates or today. Please select a future date.',
+        'error'
+      );
       return;
     }
 
-    // Open modal to select time
     this.showTimeModal = true;
     this.selectedDate = arg.dateStr;
     this.startTime = '';
@@ -109,10 +202,31 @@ export class PatientDashboardComponent implements OnInit {
     const eventData = arg.event.extendedProps['data'];
 
     if (eventType === 'request') {
-      alert(`Request Status: ${eventData.status}\nTime: ${eventData.startTime} - ${eventData.endTime}`);
+      const statusName = getStatusName(eventData.status);
+      const startTime = this.formatTime(eventData.startTime);
+      const endTime = this.formatTime(eventData.endTime);
+
+      this.showAlertModal(
+        'Request Status',
+        `Status: ${statusName}\nTime: ${startTime} - ${endTime}`,
+        'info'
+      );
     } else if (eventType === 'appointment') {
-      alert(`Confirmed Appointment\nTime: ${eventData.startTime} - ${eventData.endTime}\nStatus: ${eventData.status}`);
+      const statusName = getStatusName(eventData.status);
+      const startTime = this.formatTime(eventData.startTime);
+      const endTime = this.formatTime(eventData.endTime);
+
+      this.showAlertModal(
+        'Confirmed Appointment',
+        `Time: ${startTime} - ${endTime}\nStatus: ${statusName}`,
+        'success'
+      );
     }
+  }
+
+  private formatTime(time: string): string {
+    const pipe = new TimeFormatPipe();
+    return pipe.transform(time);
   }
 
   logout(): void {
@@ -125,17 +239,23 @@ export class PatientDashboardComponent implements OnInit {
     const request: AppointmentRequest = {
       requestDate: this.selectedDate,
       startTime: this.startTime,
-      endTime: this.endTime
+      endTime: this.endTime,
+      status: AppointmentStatus.Pending
     };
 
     this.apiService.createAppointmentRequest(request).subscribe({
       next: () => {
-        alert('Appointment request submitted successfully!');
         this.closeModal();
         this.loadCalendarData();
+        this.showAlertModal(
+          'Success',
+          'Appointment request submitted successfully!',
+          'success'
+        );
       },
       error: (err) => {
-        alert('Failed to submit request: ' + err.message);
+        const errorMessage = err.error?.error || 'Failed to submit request';
+        this.showAlertModal('Error', errorMessage, 'error');
       }
     });
   }
@@ -145,5 +265,16 @@ export class PatientDashboardComponent implements OnInit {
     this.selectedDate = '';
     this.startTime = '';
     this.endTime = '';
+  }
+
+  showAlertModal(title: string, message: string, type: 'success' | 'error' | 'info'): void {
+    this.alertTitle = title;
+    this.alertMessage = message;
+    this.alertType = type;
+    this.showAlert = true;
+  }
+
+  closeAlert(): void {
+    this.showAlert = false;
   }
 }

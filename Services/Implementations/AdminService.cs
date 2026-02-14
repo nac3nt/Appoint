@@ -13,6 +13,7 @@ namespace Appoint.Services.Implementations
         private readonly IRepository<DoctorAvailability> _availabilityRepository;
         private readonly IRepository<Appointment> _appointmentRepository;
         private readonly IRepository<User> _userRepository;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<AdminService> _logger;
 
         public AdminService(
@@ -20,12 +21,14 @@ namespace Appoint.Services.Implementations
             IRepository<DoctorAvailability> availabilityRepository,
             IRepository<Appointment> appointmentRepository,
             IRepository<User> userRepository,
+            INotificationService notificationService,
             ILogger<AdminService> logger)
         {
             _requestRepository = requestRepository;
             _availabilityRepository = availabilityRepository;
             _appointmentRepository = appointmentRepository;
             _userRepository = userRepository;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -192,6 +195,7 @@ namespace Appoint.Services.Implementations
                     throw new ConflictException("Doctor already has an appointment at this time");
                 }
 
+                // Create appointment
                 var appointment = new Appointment
                 {
                     RequestId = dto.RequestId,
@@ -205,8 +209,11 @@ namespace Appoint.Services.Implementations
 
                 var created = await _appointmentRepository.AddAsync(appointment);
 
+                // Update request status
                 request.Status = AppointmentStatus.Approved;
                 await _requestRepository.UpdateAsync(request);
+
+                await _notificationService.CreateAppointmentConfirmedNotificationsAsync(created.Id);
 
                 return created;
             }

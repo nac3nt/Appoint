@@ -1,0 +1,15 @@
+<div class="modal" (click)="close()">
+    <div class="modal-content alert-modal" (click)="$event.stopPropagation()">
+        <div class="alert-icon" [class.success]="type === 'success'" [class.error]="type === 'error'"
+            [class.info]="type === 'info'">
+            <span *ngIf="type === 'success'">✓</span>
+            <span *ngIf="type === 'error'">✕</span>
+            <span *ngIf="type === 'info'">ℹ</span>
+        </div>
+        <h2>{{ title }}</h2>
+        <p class="alert-message">{{ message }}</p>
+        <div class="modal-actions">
+            <button class="btn btn-primary" (click)="close()">OK</button>
+        </div>
+    </div>
+</div>

@@ -7,13 +7,18 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { AppointmentRequest, AvailableDoctor } from '../../models/models';
+import { AlertModalComponent } from '../alert-modal/alert-modal.component';
+import { TimeFormatPipe } from '../../pipes/time-format.pipe';
+import { getStatusName } from '../../models/enums';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
   imports: [
     CommonModule,
-    FullCalendarModule
+    FullCalendarModule,
+    AlertModalComponent,
+    TimeFormatPipe
   ],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css']
@@ -25,6 +30,13 @@ export class AdminDashboardComponent implements OnInit {
   availableDoctors: AvailableDoctor[] = [];
   searched = false;
   loading = false;
+
+  // Alert modal properties
+  showAlert = false;
+  alertTitle = '';
+  alertMessage = '';
+  alertType: 'success' | 'error' | 'info' = 'info';
+  
   calendarOptions: CalendarOptions = {
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
@@ -53,31 +65,37 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   loadCalendarData(): void {
-    const events: any[] = [];
-
-    // Load pending patient requests (Orange)
     this.apiService.getPendingRequests().subscribe({
       next: (requests) => {
-        const requestEvents = requests.map(req => ({
-          id: `request-${req.id}`,
-          title: `Patient Request: ${req.startTime} - ${req.endTime}`,
-          start: req.requestDate,
-          backgroundColor: '#ff9800',
-          borderColor: '#f57c00',
-          extendedProps: { type: 'request', data: req }
-        }));
+        const requestEvents = requests.map(req => {
+          const startTime = this.formatTime(req.startTime);
+          const endTime = this.formatTime(req.endTime);
 
-        // Load all appointments (Blue)
+          return {
+            id: `request-${req.id}`,
+            title: `Patient Request: ${startTime} - ${endTime}`,
+            start: req.requestDate,
+            backgroundColor: '#ff9800',
+            borderColor: '#f57c00',
+            extendedProps: { type: 'request', data: req }
+          };
+        });
+
         this.apiService.getAllAppointments().subscribe({
           next: (appointments) => {
-            const appointmentEvents = appointments.map(apt => ({
-              id: `appointment-${apt.id}`,
-              title: `Appointment: ${apt.startTime} - ${apt.endTime}`,
-              start: apt.appointmentDate,
-              backgroundColor: '#2196f3',
-              borderColor: '#1976d2',
-              extendedProps: { type: 'appointment', data: apt }
-            }));
+            const appointmentEvents = appointments.map(apt => {
+              const startTime = this.formatTime(apt.startTime);
+              const endTime = this.formatTime(apt.endTime);
+
+              return {
+                id: `appointment-${apt.id}`,
+                title: `Appointment: ${startTime} - ${endTime}`,
+                start: apt.appointmentDate,
+                backgroundColor: '#2196f3',
+                borderColor: '#1976d2',
+                extendedProps: { type: 'appointment', data: apt }
+              };
+            });
 
             this.calendarOptions.events = [...requestEvents, ...appointmentEvents];
           }
@@ -91,15 +109,27 @@ export class AdminDashboardComponent implements OnInit {
     const eventData = arg.event.extendedProps['data'];
 
     if (eventType === 'request') {
-      // Open modal to assign doctor
       this.showAssignDialog = true;
       this.currentRequest = eventData;
       this.availableDoctors = [];
       this.searched = false;
       this.loading = false;
     } else if (eventType === 'appointment') {
-      alert(`Confirmed Appointment\nTime: ${eventData.startTime} - ${eventData.endTime}\nStatus: ${eventData.status}`);
+      const statusName = getStatusName(eventData.status);
+      const startTime = this.formatTime(eventData.startTime);
+      const endTime = this.formatTime(eventData.endTime);
+
+      this.showAlertModal(
+        'Confirmed Appointment',
+        `Time: ${startTime} - ${endTime}\nStatus: ${statusName}`,
+        'info'
+      );
     }
+  }
+
+  private formatTime(time: string): string {
+    const pipe = new TimeFormatPipe();
+    return pipe.transform(time);
   }
 
   logout(): void {
@@ -122,16 +152,18 @@ export class AdminDashboardComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        alert('Error finding doctors: ' + err.message);
         this.loading = false;
         this.searched = true;
+        const errorMessage = err.error?.error || 'Failed to find doctors';
+        this.showAlertModal('Error', errorMessage, 'error');
       }
     });
   }
 
   assignDoctor(doctor: AvailableDoctor): void {
     if (!this.currentRequest) return;
-    if (!this.currentRequest.id) return; // Fix TypeScript error by ensuring currentRequest is defined before accessing id
+    if (!this.currentRequest.id) return;
+    
     const assignment = {
       requestId: this.currentRequest.id,
       doctorId: doctor.doctorId,
@@ -140,12 +172,17 @@ export class AdminDashboardComponent implements OnInit {
 
     this.apiService.assignAppointment(assignment).subscribe({
       next: () => {
-        alert(`Appointment assigned to ${doctor.doctorName} successfully!`);
         this.closeModal();
-        this.loadCalendarData(); // Refresh calendar
+        this.loadCalendarData();
+        this.showAlertModal(
+          'Success',
+          `Appointment assigned to ${doctor.doctorName} successfully!`,
+          'success'
+        );
       },
       error: (err) => {
-        alert('Error assigning appointment: ' + err.error.message);
+        const errorMessage = err.error?.error || 'Failed to assign appointment';
+        this.showAlertModal('Error', errorMessage, 'error');
       }
     });
   }
@@ -156,5 +193,16 @@ export class AdminDashboardComponent implements OnInit {
     this.availableDoctors = [];
     this.searched = false;
     this.loading = false;
+  }
+
+  showAlertModal(title: string, message: string, type: 'success' | 'error' | 'info'): void {
+    this.alertTitle = title;
+    this.alertMessage = message;
+    this.alertType = type;
+    this.showAlert = true;
+  }
+
+  closeAlert(): void {
+    this.showAlert = false;
   }
 }

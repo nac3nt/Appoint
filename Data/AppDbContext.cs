@@ -13,6 +13,7 @@ namespace Appoint.Data
         public DbSet<DoctorAvailability> DoctorAvailability { get; set; }
         public DbSet<AppointmentRequest> AppointmentRequests { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -28,7 +29,7 @@ namespace Appoint.Data
                 .HasOne(d => d.Doctor)
                 .WithMany()
                 .HasForeignKey(d => d.DoctorId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<DoctorAvailability>()
                 .HasIndex(d => d.DoctorId);
@@ -41,7 +42,7 @@ namespace Appoint.Data
                 .HasOne(a => a.Patient)
                 .WithMany()
                 .HasForeignKey(a => a.PatientId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<AppointmentRequest>()
                 .HasIndex(a => a.PatientId);
@@ -54,25 +55,44 @@ namespace Appoint.Data
                 .HasOne(a => a.Request)
                 .WithMany()
                 .HasForeignKey(a => a.RequestId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Appointment>()
                 .HasOne(a => a.Patient)
                 .WithMany()
                 .HasForeignKey(a => a.PatientId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Appointment>()
                 .HasOne(a => a.Doctor)
                 .WithMany()
                 .HasForeignKey(a => a.DoctorId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Appointment>()
                 .HasIndex(a => a.PatientId);
 
             modelBuilder.Entity<Appointment>()
                 .HasIndex(a => a.DoctorId);
+
+            // Notification Configuration
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Appointment)
+                .WithMany()
+                .HasForeignKey(n => n.RelatedAppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => n.UserId);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => n.CreatedAt);
         }
     }
 }

@@ -7,18 +7,6 @@
     <button class="btn btn-secondary" (click)="logout()">Logout</button>
   </header>
 
-  <!-- Instructions -->
-  <div class="instructions-card">
-    <div class="card-content">
-      <h3>📅 Admin Calendar Management:</h3>
-      <p>Click on <strong>orange events</strong> (patient requests) to assign them to available doctors.</p>
-      <ul>
-        <li><span class="color-box orange"></span> <strong>Orange</strong> = Pending Patient Request (click to assign)</li>
-        <li><span class="color-box blue"></span> <strong>Blue</strong> = Confirmed Appointment</li>
-      </ul>
-    </div>
-  </div>
-
   <!-- Calendar -->
   <div class="calendar-wrapper">
     <full-calendar [options]="calendarOptions"></full-calendar>
@@ -31,8 +19,8 @@
     <h2>Assign Doctor to Request</h2>
     <div class="modal-body">
       <div class="request-details">
-        <p><strong>Date:</strong> {{ currentRequest?.requestDate }}</p>
-        <p><strong>Time:</strong> {{ currentRequest?.startTime }} - {{ currentRequest?.endTime }}</p>
+        <p><strong>Date:</strong> {{ currentRequest?.requestDate | date:'fullDate' }}</p>
+        <p><strong>Time:</strong> {{ currentRequest?.startTime | timeFormat }} - {{ currentRequest?.endTime | timeFormat }}</p>
         <p><strong>Status:</strong> {{ currentRequest?.status }}</p>
       </div>
 
@@ -65,3 +53,12 @@
     </div>
   </div>
 </div>
+
+<!-- Alert Modal -->
+<app-alert-modal
+  *ngIf="showAlert"
+  [title]="alertTitle"
+  [message]="alertMessage"
+  [type]="alertType"
+  (closed)="closeAlert()">
+</app-alert-modal>

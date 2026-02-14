@@ -2,6 +2,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .toolbar {
@@ -11,6 +12,7 @@
   display: flex;
   align-items: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
 }
 
 .toolbar span:first-child {
@@ -59,58 +61,19 @@
   background-color: #1565c0;
 }
 
-.instructions-card {
-  margin: 20px;
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.instructions-card h3 {
-  margin-top: 0;
-  color: #1976d2;
-}
-
-.instructions-card ul {
-  list-style: none;
-  padding: 0;
-}
-
-.instructions-card li {
-  margin: 8px 0;
-  display: flex;
-  align-items: center;
-}
-
-.color-box {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
-  border-radius: 3px;
-}
-
-.color-box.orange {
-  background-color: #ff9800;
-}
-
-.color-box.green {
-  background-color: #4caf50;
-}
-
-.color-box.blue {
-  background-color: #2196f3;
-}
-
 .calendar-wrapper {
   flex: 1;
+  overflow: hidden;
   padding: 20px;
-  overflow: auto;
+  background: white;
 }
 
 ::ng-deep .fc {
-  height: 100%;
+  height: 100% !important;
+}
+
+::ng-deep .fc-view-harness {
+  height: 100% !important;
 }
 
 ::ng-deep .fc-event {
@@ -193,4 +156,144 @@
   justify-content: flex-end;
   padding-top: 20px;
   border-top: 1px solid #eee;
+}
+
+/* Notification Styles */
+.notification-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-right: 20px;
+}
+
+.notification-bell {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  position: relative;
+  padding: 8px;
+  transition: transform 0.2s;
+}
+
+.notification-bell:hover {
+  transform: scale(1.1);
+}
+
+.badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #f44336;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 10px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.dropdown-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  font-weight: 600;
+  color: #1976d2;
+  background-color: #f5f5f5;
+  border-radius: 8px 8px 0 0;
+}
+
+.no-notifications {
+  padding: 40px 20px;
+  text-align: center;
+  color: #999;
+}
+
+.notification-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.notification-item:hover {
+  background-color: #f5f5f5;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notif-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.notif-preview {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.notif-time {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Notification Modal Specific Styles */
+.notification-modal {
+  max-width: 500px;
+}
+
+.notification-message {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.appointment-details {
+  background-color: #f5f5f5;
+  padding: 16px;
+  border-radius: 4px;
+  border-left: 4px solid #1976d2;
+}
+
+.appointment-details p {
+  margin: 8px 0;
+  color: #333;
+}
+
+.appointment-details strong {
+  color: #1976d2;
+}
+
+/* Disable past dates and today */
+::ng-deep .past-date {
+  background-color: #f5f5f5 !important;
+  color: #ccc !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+::ng-deep .past-date .fc-daygrid-day-number {
+  color: #ccc !important;
+}
+
+::ng-deep .past-date:hover {
+  background-color: #f5f5f5 !important;
 }

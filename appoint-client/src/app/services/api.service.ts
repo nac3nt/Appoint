@@ -6,7 +6,8 @@ import {
   DoctorAvailability,
   Appointment,
   AvailableDoctor,
-  AssignAppointmentRequest
+  AssignAppointmentRequest,
+  Notification
 } from '../models/models';
 
 @Injectable({
@@ -67,5 +68,18 @@ export class ApiService {
 
   getAllAppointments(): Observable<Appointment[]> {
     return this.http.get<Appointment[]>(`${this.apiUrl}/admin/all-appointments`);
+  }
+
+  // Notification APIs
+  getMyNotifications(): Observable<Notification[]> {
+    return this.http.get<Notification[]>(`${this.apiUrl}/notification`);
+  }
+
+  getNotificationCount(): Observable<number> {
+    return this.http.get<number>(`${this.apiUrl}/notification/count`);
+  }
+
+  deleteNotification(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/notification/${id}`);
   }
 }

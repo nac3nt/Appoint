@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FullCalendarModule } from '@fullcalendar/angular';
@@ -7,7 +7,10 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
-import { DoctorAvailability } from '../../models/models';
+import { DoctorAvailability, Notification } from '../../models/models';
+import { AlertModalComponent } from '../alert-modal/alert-modal.component';
+import { TimeFormatPipe } from '../../pipes/time-format.pipe';
+import { getStatusName } from '../../models/enums';
 
 @Component({
   selector: 'app-doctor-dashboard',
@@ -15,7 +18,9 @@ import { DoctorAvailability } from '../../models/models';
   imports: [
     CommonModule,
     FormsModule,
-    FullCalendarModule
+    FullCalendarModule,
+    AlertModalComponent,
+    TimeFormatPipe
   ],
   templateUrl: './doctor-dashboard.component.html',
   styleUrls: ['./doctor-dashboard.component.css']
@@ -26,6 +31,24 @@ export class DoctorDashboardComponent implements OnInit {
   selectedDate = '';
   startTime = '';
   endTime = '';
+  
+  // Notification properties
+  notifications: Notification[] = [];
+  notificationCount: number = 0;
+  showNotifications: boolean = false;
+  selectedNotification: Notification | null = null;
+
+  // Alert modal properties
+  showAlert = false;
+  alertTitle = '';
+  alertMessage = '';
+  alertType: 'success' | 'error' | 'info' = 'info';
+
+  // Confirmation modal properties
+  showConfirmModal = false;
+  confirmMessage = '';
+  confirmCallback: (() => void) | null = null;
+  
   calendarOptions: CalendarOptions = {
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
@@ -40,6 +63,7 @@ export class DoctorDashboardComponent implements OnInit {
     dayMaxEvents: true,
     dateClick: this.handleDateClick.bind(this),
     eventClick: this.handleEventClick.bind(this),
+    dayCellClassNames: this.getDayCellClass.bind(this),
     events: []
   };
 
@@ -52,31 +76,103 @@ export class DoctorDashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadNotifications();
     this.loadCalendarData();
+  }
+
+  getDayCellClass(arg: any): string[] {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const cellDate = new Date(arg.date);
+    cellDate.setHours(0, 0, 0, 0);
+    
+    if (cellDate <= today) {
+      return ['past-date'];
+    }
+    return [];
+  }
+
+  loadNotifications(): void {
+    this.apiService.getMyNotifications().subscribe({
+      next: (notifs) => {
+        this.notifications = notifs;
+        this.notificationCount = notifs.length;
+      },
+      error: (err) => {
+        console.error('Error loading notifications:', err);
+      }
+    });
+  }
+
+  toggleNotifications(): void {
+    this.showNotifications = !this.showNotifications;
+  }
+
+  openNotificationModal(notification: Notification): void {
+    this.selectedNotification = notification;
+    this.showNotifications = false;
+  }
+
+  dismissNotification(): void {
+    if (!this.selectedNotification) return;
+
+    this.apiService.deleteNotification(this.selectedNotification.id).subscribe({
+      next: () => {
+        this.selectedNotification = null;
+        this.loadNotifications();
+      },
+      error: (err) => {
+        const errorMessage = err.error?.error || 'Failed to dismiss notification';
+        this.showAlertModal('Error', errorMessage, 'error');
+      }
+    });
+  }
+
+  closeNotificationModal(): void {
+    this.selectedNotification = null;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.notification-wrapper')) {
+      this.showNotifications = false;
+    }
   }
 
   loadCalendarData(): void {
     this.apiService.getDoctorAvailability().subscribe({
       next: (availabilities) => {
-        const availabilityEvents = availabilities.map(avail => ({
-          id: `availability-${avail.id}`,
-          title: `Available: ${avail.startTime} - ${avail.endTime}`,
-          start: avail.availableDate,
-          backgroundColor: '#4caf50',
-          borderColor: '#388e3c',
-          extendedProps: { type: 'availability', data: avail }
-        }));
+        const availabilityEvents = availabilities.map(avail => {
+          const startTime = this.formatTime(avail.startTime);
+          const endTime = this.formatTime(avail.endTime);
+
+          return {
+            id: `availability-${avail.id}`,
+            title: `Available: ${startTime} - ${endTime}`,
+            start: avail.availableDate,
+            backgroundColor: '#4caf50',
+            borderColor: '#388e3c',
+            extendedProps: { type: 'availability', data: avail }
+          };
+        });
 
         this.apiService.getDoctorAppointments().subscribe({
           next: (appointments) => {
-            const appointmentEvents = appointments.map(apt => ({
-              id: `appointment-${apt.id}`,
-              title: `Appointment: ${apt.startTime} - ${apt.endTime}`,
-              start: apt.appointmentDate,
-              backgroundColor: '#2196f3',
-              borderColor: '#1976d2',
-              extendedProps: { type: 'appointment', data: apt }
-            }));
+            const appointmentEvents = appointments.map(apt => {
+              const startTime = this.formatTime(apt.startTime);
+              const endTime = this.formatTime(apt.endTime);
+
+              return {
+                id: `appointment-${apt.id}`,
+                title: `Appointment: ${startTime} - ${endTime}`,
+                start: apt.appointmentDate,
+                backgroundColor: '#2196f3',
+                borderColor: '#1976d2',
+                extendedProps: { type: 'appointment', data: apt }
+              };
+            });
 
             this.calendarOptions.events = [...availabilityEvents, ...appointmentEvents];
           }
@@ -90,12 +186,15 @@ export class DoctorDashboardComponent implements OnInit {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (clickedDate < today) {
-      alert('Cannot set availability for past dates');
+    if (clickedDate <= today) {
+      this.showAlertModal(
+        'Invalid Date',
+        'Cannot set availability for past dates or today. Please select a future date.',
+        'error'
+      );
       return;
     }
 
-    // Open modal to set availability time
     this.showAvailabilityModal = true;
     this.selectedDate = arg.dateStr;
     this.startTime = '';
@@ -107,20 +206,40 @@ export class DoctorDashboardComponent implements OnInit {
     const eventData = arg.event.extendedProps['data'];
 
     if (eventType === 'availability') {
-      if (confirm(`Delete this availability?\nTime: ${eventData.startTime} - ${eventData.endTime}`)) {
-        this.apiService.deleteAvailability(eventData.id).subscribe({
-          next: () => {
-            alert('Availability deleted successfully!');
-            this.loadCalendarData();
-          },
-          error: (err) => {
-            alert('Failed to delete: ' + (err.error?.message || 'This slot may have appointments'));
-          }
-        });
-      }
+      const startTime = this.formatTime(eventData.startTime);
+      const endTime = this.formatTime(eventData.endTime);
+
+      this.showConfirmation(
+        `Delete this availability?\nTime: ${startTime} - ${endTime}`,
+        () => {
+          this.apiService.deleteAvailability(eventData.id).subscribe({
+            next: () => {
+              this.loadCalendarData();
+              this.showAlertModal('Success', 'Availability deleted successfully!', 'success');
+            },
+            error: (err) => {
+              const errorMessage = err.error?.error || 'This slot may have appointments';
+              this.showAlertModal('Error', 'Failed to delete: ' + errorMessage, 'error');
+            }
+          });
+        }
+      );
     } else if (eventType === 'appointment') {
-      alert(`Confirmed Appointment\nTime: ${eventData.startTime} - ${eventData.endTime}\nStatus: ${eventData.status}`);
+      const statusName = getStatusName(eventData.status);
+      const startTime = this.formatTime(eventData.startTime);
+      const endTime = this.formatTime(eventData.endTime);
+
+      this.showAlertModal(
+        'Confirmed Appointment',
+        `Time: ${startTime} - ${endTime}\nStatus: ${statusName}`,
+        'success'
+      );
     }
+  }
+
+  private formatTime(time: string): string {
+    const pipe = new TimeFormatPipe();
+    return pipe.transform(time);
   }
 
   logout(): void {
@@ -138,14 +257,13 @@ export class DoctorDashboardComponent implements OnInit {
 
     this.apiService.addAvailability(availability).subscribe({
       next: () => {
-        alert('Availability added successfully!');
         this.closeModal();
         this.loadCalendarData();
+        this.showAlertModal('Success', 'Availability added successfully!', 'success');
       },
       error: (err) => {
-        // This will now show the overlap error message
-        const errorMessage = err.error?.message || 'Failed to add availability';
-        alert(errorMessage);
+        const errorMessage = err.error?.error || 'Failed to add availability';
+        this.showAlertModal('Error', errorMessage, 'error');
       }
     });
   }
@@ -155,5 +273,35 @@ export class DoctorDashboardComponent implements OnInit {
     this.selectedDate = '';
     this.startTime = '';
     this.endTime = '';
+  }
+
+  showAlertModal(title: string, message: string, type: 'success' | 'error' | 'info'): void {
+    this.alertTitle = title;
+    this.alertMessage = message;
+    this.alertType = type;
+    this.showAlert = true;
+  }
+
+  closeAlert(): void {
+    this.showAlert = false;
+  }
+
+  showConfirmation(message: string, callback: () => void): void {
+    this.confirmMessage = message;
+    this.confirmCallback = callback;
+    this.showConfirmModal = true;
+  }
+
+  confirmAction(): void {
+    if (this.confirmCallback) {
+      this.confirmCallback();
+    }
+    this.closeConfirmation();
+  }
+
+  closeConfirmation(): void {
+    this.showConfirmModal = false;
+    this.confirmMessage = '';
+    this.confirmCallback = null;
   }
 }
