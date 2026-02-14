@@ -140,7 +140,9 @@ export class PatientDashboardComponent implements OnInit {
   loadCalendarData(): void {
     this.apiService.getMyRequests().subscribe({
       next: (requests) => {
-        const requestEvents = requests.map(req => {
+        const pendingRequests = requests.filter(req => req.status === AppointmentStatus.Pending);
+
+        const requestEvents = pendingRequests.map(req => {
           const startTime = this.formatTime(req.startTime);
           const endTime = this.formatTime(req.endTime);
           const statusName = getStatusName(req.status);
@@ -209,7 +211,7 @@ export class PatientDashboardComponent implements OnInit {
 
       this.showAlertModal(
         'Request Status',
-        `Status: ${statusName}\nTime: ${startTime} - ${endTime}`,
+        `Time: ${startTime} - ${endTime}`,
         'info'
       );
     } else if (eventType === 'appointment') {
@@ -219,7 +221,7 @@ export class PatientDashboardComponent implements OnInit {
 
       this.showAlertModal(
         'Confirmed Appointment',
-        `Time: ${startTime} - ${endTime}\nStatus: ${statusName}`,
+        `Time: ${startTime} - ${endTime}`,
         'success'
       );
     }

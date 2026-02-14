@@ -116,12 +116,11 @@ namespace Appoint.Services.Implementations
                     throw new UnauthorizedException("You are not authorized to delete this availability");
                 }
 
-                // Check if there are any appointments within this availability slot
                 var appointments = await _appointmentRepository.FindAsync(
                     apt => apt.DoctorId == doctorId &&
-                           apt.AppointmentDate == availability.AvailableDate &&
-                           apt.StartTime >= availability.StartTime &&
-                           apt.EndTime <= availability.EndTime
+                    apt.AppointmentDate == availability.AvailableDate &&
+                    apt.StartTime < availability.EndTime &&
+                    apt.EndTime > availability.StartTime
                 );
 
                 if (appointments.Any())

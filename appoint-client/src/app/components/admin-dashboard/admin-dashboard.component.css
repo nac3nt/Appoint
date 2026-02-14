@@ -187,3 +187,9 @@
   padding-top: 20px;
   border-top: 1px solid #eee;
 }
+
+.detail-value {
+  margin-left: 20px;
+  margin-top: -8px;
+  color: #555;
+}

@@ -48,6 +48,8 @@ export class DoctorDashboardComponent implements OnInit {
   showConfirmModal = false;
   confirmMessage = '';
   confirmCallback: (() => void) | null = null;
+
+  private allAppointments: any[] = [];
   
   calendarOptions: CalendarOptions = {
     plugins: [dayGridPlugin, interactionPlugin],
@@ -145,22 +147,25 @@ export class DoctorDashboardComponent implements OnInit {
   loadCalendarData(): void {
     this.apiService.getDoctorAvailability().subscribe({
       next: (availabilities) => {
-        const availabilityEvents = availabilities.map(avail => {
-          const startTime = this.formatTime(avail.startTime);
-          const endTime = this.formatTime(avail.endTime);
-
-          return {
-            id: `availability-${avail.id}`,
-            title: `Available: ${startTime} - ${endTime}`,
-            start: avail.availableDate,
-            backgroundColor: '#4caf50',
-            borderColor: '#388e3c',
-            extendedProps: { type: 'availability', data: avail }
-          };
-        });
-
         this.apiService.getDoctorAppointments().subscribe({
           next: (appointments) => {
+            this.allAppointments = appointments;
+            const availabilityEvents = availabilities
+              .filter(avail => !this.hasOverlappingAppointment(avail))
+              .map(avail => {
+                const startTime = this.formatTime(avail.startTime);
+                const endTime = this.formatTime(avail.endTime);
+
+                return {
+                  id: `availability-${avail.id}`,
+                  title: `Available: ${startTime} - ${endTime}`,
+                  start: avail.availableDate,
+                  backgroundColor: '#4caf50',
+                  borderColor: '#388e3c',
+                  extendedProps: { type: 'availability', data: avail }
+                };
+              });
+
             const appointmentEvents = appointments.map(apt => {
               const startTime = this.formatTime(apt.startTime);
               const endTime = this.formatTime(apt.endTime);
@@ -180,6 +185,28 @@ export class DoctorDashboardComponent implements OnInit {
         });
       }
     });
+  }
+
+  private hasOverlappingAppointment(availability: any): boolean {
+    return this.allAppointments.some(apt => {
+      if (apt.appointmentDate !== availability.availableDate) {
+        return false;
+      }
+
+      const availStart = this.parseTimeSpan(availability.startTime);
+      const availEnd = this.parseTimeSpan(availability.endTime);
+      const aptStart = this.parseTimeSpan(apt.startTime);
+      const aptEnd = this.parseTimeSpan(apt.endTime);
+
+      return aptStart < availEnd && aptEnd > availStart;
+    });
+  }
+
+  private parseTimeSpan(time: string): number {
+    const parts = time.split(':');
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    return hours * 60 + minutes;
   }
 
   handleDateClick(arg: DateClickArg): void {
@@ -232,7 +259,7 @@ export class DoctorDashboardComponent implements OnInit {
 
       this.showAlertModal(
         'Confirmed Appointment',
-        `Time: ${startTime} - ${endTime}\nStatus: ${statusName}`,
+        `Time: ${startTime} - ${endTime}`,
         'success'
       );
     }

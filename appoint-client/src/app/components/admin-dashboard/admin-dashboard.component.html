@@ -20,8 +20,10 @@
     <div class="modal-body">
       <div class="request-details">
         <p><strong>Date:</strong> {{ currentRequest?.requestDate | date:'fullDate' }}</p>
-        <p><strong>Time:</strong> {{ currentRequest?.startTime | timeFormat }} - {{ currentRequest?.endTime | timeFormat }}</p>
-        <p><strong>Status:</strong> {{ currentRequest?.status }}</p>
+        <p><strong>Time:</strong></p>
+        <p class="detail-value">{{ currentRequest?.startTime | timeFormat }} - {{ currentRequest?.endTime | timeFormat }}</p>
+        <p><strong>Status:</strong></p>
+        <p class="detail-value">{{ getStatusName(currentRequest?.status) }}</p>
       </div>
 
       <hr>

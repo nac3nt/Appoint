@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Appoint.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260214094000_InitialCreate")]
+    [Migration("20260214152706_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

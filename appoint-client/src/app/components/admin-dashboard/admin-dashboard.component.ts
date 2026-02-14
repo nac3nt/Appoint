@@ -122,7 +122,7 @@ export class AdminDashboardComponent implements OnInit {
 
       this.showAlertModal(
         'Confirmed Appointment',
-        `Time: ${startTime} - ${endTime}\nStatus: ${statusName}`,
+        `Time: ${startTime} - ${endTime}`,
         'info'
       );
     }
@@ -205,5 +205,9 @@ export class AdminDashboardComponent implements OnInit {
 
   closeAlert(): void {
     this.showAlert = false;
+  }
+
+  getStatusName(status: any): string {
+    return getStatusName(status);
   }
 }
