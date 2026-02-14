@@ -48,6 +48,7 @@ export class AdminDashboardComponent implements OnInit {
     editable: false,
     selectable: false,
     dayMaxEvents: true,
+    displayEventTime: false,
     eventClick: this.handleEventClick.bind(this),
     events: []
   };

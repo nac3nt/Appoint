@@ -61,6 +61,7 @@ export class DoctorDashboardComponent implements OnInit {
     selectable: true,
     selectMirror: true,
     dayMaxEvents: true,
+    displayEventTime: false,
     dateClick: this.handleDateClick.bind(this),
     eventClick: this.handleEventClick.bind(this),
     dayCellClassNames: this.getDayCellClass.bind(this),
