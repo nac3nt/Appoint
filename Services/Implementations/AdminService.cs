@@ -51,12 +51,10 @@ namespace Appoint.Services.Implementations
         {
             try
             {
-                // Get all availability slots for the requested date
                 var allAvailabilitySlots = await _availabilityRepository.FindAsync(
                     a => a.AvailableDate == date
                 );
 
-                // Group slots by doctor
                 var slotsByDoctor = allAvailabilitySlots.GroupBy(a => a.DoctorId);
 
                 var availableDoctors = new List<AvailableDoctorDto>();
@@ -64,11 +62,7 @@ namespace Appoint.Services.Implementations
                 foreach (var doctorSlots in slotsByDoctor)
                 {
                     var doctorId = doctorSlots.Key;
-
-                    // Merge adjacent/overlapping slots for this doctor
                     var mergedSlots = MergeAdjacentSlots(doctorSlots.ToList());
-
-                    // Check if request fits within any merged slot
                     var fitsInAnySlot = mergedSlots.Any(slot =>
                         slot.StartTime <= startTime && slot.EndTime >= endTime
                     );
@@ -76,7 +70,6 @@ namespace Appoint.Services.Implementations
                     if (!fitsInAnySlot)
                         continue;
 
-                    // Check if this doctor has conflicting appointments
                     var doctorAppointments = await _appointmentRepository.FindAsync(
                         apt => apt.DoctorId == doctorId && apt.AppointmentDate == date
                     );
@@ -90,11 +83,9 @@ namespace Appoint.Services.Implementations
                     if (hasConflict)
                         continue;
 
-                    // Get doctor details
                     var doctor = await _userRepository.GetByIdAsync(doctorId);
                     if (doctor != null)
                     {
-                        // Use the first slot that covers the time (for availabilityId)
                         var coveringSlot = doctorSlots.FirstOrDefault(s =>
                             s.StartTime <= startTime && s.EndTime >= endTime
                         ) ?? doctorSlots.First();
@@ -117,13 +108,11 @@ namespace Appoint.Services.Implementations
             }
         }
 
-        // Helper method to merge adjacent/overlapping slots
         private List<DoctorAvailability> MergeAdjacentSlots(List<DoctorAvailability> slots)
         {
             if (slots.Count == 0)
                 return slots;
 
-            // Sort slots by start time
             var sortedSlots = slots.OrderBy(s => s.StartTime).ToList();
 
             var mergedSlots = new List<DoctorAvailability>();
@@ -133,15 +122,11 @@ namespace Appoint.Services.Implementations
             {
                 var nextSlot = sortedSlots[i];
 
-                // Check if slots are adjacent or overlapping
-                // Adjacent: current.EndTime == next.StartTime
-                // Overlapping: current.EndTime > next.StartTime
                 if (currentSlot.EndTime >= nextSlot.StartTime)
                 {
-                    // Merge: extend current slot to cover next slot
                     currentSlot = new DoctorAvailability
                     {
-                        Id = currentSlot.Id, // Keep first slot's ID
+                        Id = currentSlot.Id,
                         DoctorId = currentSlot.DoctorId,
                         AvailableDate = currentSlot.AvailableDate,
                         StartTime = currentSlot.StartTime,
@@ -151,13 +136,11 @@ namespace Appoint.Services.Implementations
                 }
                 else
                 {
-                    // No overlap/adjacency - add current to merged list and move to next
                     mergedSlots.Add(currentSlot);
                     currentSlot = nextSlot;
                 }
             }
 
-            // Add the last slot
             mergedSlots.Add(currentSlot);
 
             return mergedSlots;
@@ -179,7 +162,6 @@ namespace Appoint.Services.Implementations
                     throw new NotFoundException("Availability slot not found");
                 }
 
-                // Check if the doctor has any conflicting appointments
                 var doctorAppointments = await _appointmentRepository.FindAsync(
                     apt => apt.DoctorId == dto.DoctorId && apt.AppointmentDate == request.RequestDate
                 );
@@ -195,7 +177,6 @@ namespace Appoint.Services.Implementations
                     throw new ConflictException("Doctor already has an appointment at this time");
                 }
 
-                // Create appointment
                 var appointment = new Appointment
                 {
                     RequestId = dto.RequestId,
@@ -209,7 +190,6 @@ namespace Appoint.Services.Implementations
 
                 var created = await _appointmentRepository.AddAsync(appointment);
 
-                // Update request status
                 request.Status = AppointmentStatus.Approved;
                 await _requestRepository.UpdateAsync(request);
 

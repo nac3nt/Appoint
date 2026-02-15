@@ -42,7 +42,6 @@ namespace Appoint.Services.Implementations
                     throw new NotFoundException("Patient or Doctor not found");
                 }
 
-                // Create notification for patient
                 var patientNotification = new Notification
                 {
                     UserId = appointment.PatientId,
@@ -58,7 +57,6 @@ namespace Appoint.Services.Implementations
 
                 await _notificationRepository.AddAsync(patientNotification);
 
-                // Create notification for doctor
                 var doctorNotification = new Notification
                 {
                     UserId = appointment.DoctorId,

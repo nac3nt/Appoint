@@ -26,7 +26,6 @@ namespace Appoint.Services.Implementations
         {
             try
             {
-                // Check for overlapping availability
                 var existingAvailability = await _availabilityRepository.FindAsync(
                     a => a.DoctorId == doctorId && a.AvailableDate == dto.AvailableDate
                 );

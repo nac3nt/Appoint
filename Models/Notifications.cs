@@ -14,9 +14,9 @@ namespace Appoint.Models
 
         public required string Message { get; set; }
 
-        public string? DoctorName { get; set; } // For patient notifications
+        public string? DoctorName { get; set; }
 
-        public string? PatientName { get; set; } // For doctor notifications
+        public string? PatientName { get; set; }
 
         public required DateTime AppointmentDate { get; set; }
 
